@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Brutal Stick Fighter</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f0c29, #302b63, #24243e);
+            font-family: 'Arial', sans-serif;
+            overflow: hidden;
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 1200px;
+            height: 700px;
+            background: linear-gradient(to bottom, #1a1a2e 0%, #16213e 50%, #0f0f1e 100%);
+            border: 4px solid #000;
+            box-shadow: 0 0 50px rgba(0,0,0,0.9);
+        }
+        
+        #canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+        
+        .ui {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            padding: 20px;
+            pointer-events: none;
+        }
+        
+        .healthBars {
+            display: flex;
+            justify-content: space-between;
+            gap: 40px;
+            margin-bottom: 10px;
+        }
+        
+        .playerHealth {
+            flex: 1;
+            background: rgba(0,0,0,0.8);
+            padding: 15px;
+            border-radius: 10px;
+            border: 2px solid #ff0000;
+        }
+        
+        .playerName {
+            color: #ff0000;
+            font-weight: bold;
+            margin-bottom: 8px;
+            font-size: 18px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+        
+        .healthBarContainer {
+            width: 100%;
+            height: 35px;
+            background: #1a1a1a;
+            border: 2px solid #000;
+            border-radius: 5px;
+            overflow: hidden;
+            margin-bottom: 10px;
+        }
+        
+        .healthBar {
+            height: 100%;
+            background: linear-gradient(to bottom, #ff0000, #cc0000);
+            transition: width 0.3s ease;
+            box-shadow: inset 0 2px 8px rgba(255,0,0,0.5);
+        }
+        
+        .specialBar {
+            width: 100%;
+            height: 18px;
+            background: #0a0a0a;
+            border: 2px solid #000;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+        
+        .specialCharge {
+            height: 100%;
+            background: linear-gradient(to right, #00ffff, #0099ff);
+            transition: width 0.1s linear;
+            box-shadow: 0 0 10px rgba(0,255,255,0.5);
+        }
+        
+        .controls {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0,0,0,0.9);
+            padding: 15px;
+            border-radius: 8px;
+            border: 2px solid #ff0000;
+            color: #fff;
+            font-size: 13px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .damageIndicator {
+            position: absolute;
+            color: #ff0000;
+            font-weight: bold;
+            font-size: 32px;
+            pointer-events: none;
+            animation: floatUp 1.2s ease-out forwards;
+            text-shadow: 0 0 10px #ff0000, 2px 2px 4px #000;
+        }
+        
+        @keyframes floatUp {
+            to {
+                transform: translateY(-80px);
+                opacity: 0;
+            }
+        }
+        
+        .qtePrompt {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.95);
+            padding: 40px 60px;
+            border-radius: 15px;
+            border: 4px solid #ff0000;
+            text-align: center;
+            display: none;
+            pointer-events: all;
+            box-shadow: 0 0 50px rgba(255,0,0,1);
+            animation: pulse 0.5s infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.05); }
+        }
+        
+        .qtePrompt h2 {
+            color: #ff0000;
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px #ff0000;
+            letter-spacing: 3px;
+        }
+        
+        .qteKeys {
+            display: flex;
+            gap: 20px;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        
+        .qteKey {
+            background: #1a1a1a;
+            border: 3px solid #ff0000;
+            padding: 20px 30px;
+            font-size: 36px;
+            font-weight: bold;
+            color: #fff;
+            border-radius: 10px;
+            min-width: 70px;
+            transition: all 0.2s;
+        }
+        
+        .qteKey.pressed {
+            background: #00ff00;
+            border-color: #00ff00;
+            transform: scale(0.9);
+        }
+        
+        .qteTimer {
+            color: #fff;
+            font-size: 24px;
+            font-weight: bold;
+        }
+        
+        .gameOver {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.95);
+            padding: 60px;
+            border-radius: 15px;
+            border: 4px solid #ff0000;
+            text-align: center;
+            display: none;
+            pointer-events: all;
+            box-shadow: 0 0 50px rgba(255,0,0,0.8);
+        }
+        
+        .gameOver h1 {
+            color: #ff0000;
+            font-size: 60px;
+            margin-bottom: 20px;
+            text-shadow: 0 0 20px #ff0000;
+            letter-spacing: 3px;
+        }
+        
+        .gameOver button {
+            background: linear-gradient(to bottom, #ff0000, #990000);
+            border: none;
+            padding: 20px 60px;
+            font-size: 22px;
+            font-weight: bold;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s;
+            color: #fff;
+            text-transform: uppercase;
+        }
+        
+        .gameOver button:hover {
+            background: linear-gradient(to bottom, #ff3333, #cc0000);
+            transform: scale(1.1);
+            box-shadow: 0 0 30px rgba(255,0,0,0.8);
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="canvas" width="1200" height="700"></canvas>
+        
+        <div class="ui">
+            <div class="healthBars">
+                <div class="playerHealth">
+                    <div class="playerName">⚔ Red Warrior</div>
+                    <div class="healthBarContainer">
+                        <div class="healthBar" id="health1" style="width: 100%"></div>
+                    </div>
+                    <div class="specialBar">
+                        <div class="specialCharge" id="special1" style="width: 0%"></div>
+                    </div>
+                </div>
+                <div class="playerHealth">
+                    <div class="playerName">Blue Warrior ⚔</div>
+                    <div class="healthBarContainer">
+                        <div class="healthBar" id="health2" style="width: 100%"></div>
+                    </div>
+                    <div class="specialBar">
+                        <div class="specialCharge" id="special2" style="width: 0%"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="controls">
+                <div>
+                    <strong>RED:</strong> A/D move | SPACE jump | J: Slash | K: Heavy | L: Execute (Full Meter)
+                </div>
+                <div>
+                    <strong>BLUE:</strong> Arrows move | ↑ jump | 1: Slash | 2: Heavy | 3: Execute (Full Meter)
+                </div>
+            </div>
+        </div>
+        
+        <div class="qtePrompt" id="qtePrompt">
+            <h2>FINISH HIM!</h2>
+            <div class="qteKeys" id="qteKeys"></div>
+            <div class="qteTimer" id="qteTimer">3.0s</div>
+        </div>
+        
+        <div class="gameOver" id="gameOver">
+            <h1 id="winner"></h1>
+            <button onclick="resetGame()">FIGHT AGAIN</button>
+        </div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        
+        const GROUND_Y = 580;
+        const keys = {};
+        const DAMAGE = {
+            light: 15,
+            heavy: 30,
+            special: 50
+        };
+        
+        let bloodParticles = [];
+        let isFinishing = false;
+        let finishingPhase = 'qte'; 
+        let finishingTimer = 0;
+        let winner = null;
+        let loser = null;
+        let qteSequence = [];
+        let qteProgress = 0;
+        let qteTimeLeft = 3;
+        let qteActive = false;
+        
+        class BloodParticle {
+            constructor(x, y, vx, vy) {
+                this.x = x;
+                this.y = y;
+                this.vx = vx;
+                this.vy = vy;
+                this.life = 60 + Math.random() * 40;
+                this.size = Math.random() * 4 + 2;
+                this.gravity = 0.3;
+            }
+            
+            update() {
+                this.x += this.vx;
+                this.y += this.vy;
+                this.vy += this.gravity;
+                this.vx *= 0.98;
+                this.life--;
+                
+                if (this.y > GROUND_Y) {
+                    this.y = GROUND_Y;
+                    this.vy = 0;
+                    this.vx *= 0.7;
+                }
+            }
+            
+            draw() {
+                ctx.globalAlpha = Math.min(1, this.life / 30);
+                ctx.fillStyle = '#8B0000';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.globalAlpha = 1;
+            }
+        }
+        
+        class Fighter {
+            constructor(x, color, controls, name) {
+                this.x = x;
+                this.y = GROUND_Y;
+                this.color = color;
+                this.controls = controls;
+                this.name = name;
+                this.velocityY = 0;
+                this.velocityX = 0;
+                this.health = 100;
+                this.facing = 1;
+                this.isAttacking = false;
+                this.attackCooldown = 0;
+                this.attackType = '';
+                this.attackFrame = 0;
+                this.specialCharge = 0;
+                this.hitStun = 0;
+                this.isDead = false;
+                this.headX = 0;
+                this.headY = -100;
+                this.headVelX = 0;
+                this.headVelY = 0;
+                this.headRotation = 0;
+                this.headRotationSpeed = 0;
+                this.finishingPose = false;
+            }
+            
+            update() {
+                if (this.isDead) {
+                    this.headX += this.headVelX;
+                    this.headY += this.headVelY;
+                    this.headVelY += 0.5;
+                    this.headRotation += this.headRotationSpeed;
+                    
+                    if (this.headY > GROUND_Y - 10) {
+                        this.headY = GROUND_Y - 10;
+                        this.headVelY *= -0.3;
+                        this.headVelX *= 0.8;
+                        this.headRotationSpeed *= 0.8;
+                    }
+                    return;
+                }
+                
+                if (isFinishing) return;
+                
+                if (this.hitStun > 0) {
+                    this.hitStun--;
+                    this.velocityX *= 0.92;
+                } else {
+                    if (keys[this.controls.left] && this.x > 50) {
+                        this.velocityX = -6;
+                        this.facing = -1;
+                    } else if (keys[this.controls.right] && this.x < canvas.width - 50) {
+                        this.velocityX = 6;
+                        this.facing = 1;
+                    } else {
+                        this.velocityX *= 0.88;
+                    }
+                    
+                    if (keys[this.controls.up] && this.y >= GROUND_Y) {
+                        this.velocityY = -19;
+                    }
+                }
+                
+                this.velocityY += 0.75;
+                this.y += this.velocityY;
+                this.x += this.velocityX;
+                
+                if (this.y > GROUND_Y) {
+                    this.y = GROUND_Y;
+                    this.velocityY = 0;
+                }
+                
+                if (this.attackCooldown > 0) {
+                    this.attackCooldown--;
+                    this.attackFrame++;
+                } else {
+                    this.isAttacking = false;
+                    this.attackFrame = 0;
+                }
+                
+                if (this.specialCharge < 100) {
+                    this.specialCharge += 0.18;
+                }
+                
+                if (!this.isAttacking && this.hitStun === 0) {
+                    if (keys[this.controls.light]) {
+                        this.attack('light');
+                    } else if (keys[this.controls.heavy]) {
+                        this.attack('heavy');
+                    } else if (keys[this.controls.special] && this.specialCharge >= 100) {
+                        this.attack('special');
+                        this.specialCharge = 0;
+                    }
+                }
+            }
+            
+            attack(type) {
+                this.isAttacking = true;
+                this.attackType = type;
+                this.attackFrame = 0;
+                
+                if (type === 'light') {
+                    this.attackCooldown = 20;
+                } else if (type === 'heavy') {
+                    this.attackCooldown = 40;
+                } else if (type === 'special') {
+                    this.attackCooldown = 60;
+                }
+            }
+            
+            draw() {
+                if (this.isDead) {
+                    this.drawDeadBody();
+                    this.drawSeveredHead();
+                    return;
+                }
+                
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                
+                const hitFlash = this.hitStun > 0 && Math.floor(this.hitStun / 2) % 2 === 0;
+                const bodyColor = hitFlash ? '#ffffff' : this.color;
+                
+                ctx.strokeStyle = bodyColor;
+                ctx.fillStyle = bodyColor;
+                ctx.lineWidth = 5;
+                ctx.lineCap = 'round';
+                
+                let swordAngle = -Math.PI / 6;
+                let swordX = 15 * this.facing;
+                let swordY = -70;
+                
+                if (this.finishingPose) {
+                    swordAngle = -Math.PI / 2.5;
+                    swordX = 20 * this.facing;
+                }
+                
+                if (this.isAttacking && !isFinishing) {
+                    const progress = this.attackFrame / this.attackCooldown;
+                    if (this.attackType === 'light') {
+                        swordAngle = -Math.PI / 6 - (Math.sin(progress * Math.PI) * Math.PI / 2);
+                    } else if (this.attackType === 'heavy') {
+                        swordAngle = Math.PI / 12 - (progress * Math.PI);
+                    }
+                }
+                
+                // Draw Sword
+                ctx.strokeStyle = '#c0c0c0';
+                ctx.lineWidth = 4;
+                ctx.beginPath();
+                ctx.moveTo(swordX, swordY);
+                ctx.lineTo(swordX + 65 * Math.cos(swordAngle) * this.facing, swordY + 65 * Math.sin(swordAngle));
+                ctx.stroke();
+                
+                // Draw Stickman
+                ctx.strokeStyle = bodyColor;
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                ctx.arc(0, -100, 16, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, -84); ctx.lineTo(0, -40);
+                ctx.stroke();
+                
+                const walkOffset = Math.abs(this.velocityX) > 0.5 ? Math.sin(Date.now() / 80) * 12 : 0;
+                ctx.beginPath();
+                ctx.moveTo(0, -40); ctx.lineTo(-10 + walkOffset, -5);
+                ctx.stroke();
+                ctx.beginPath();
+                ctx.moveTo(0, -40); ctx.lineTo(10 - walkOffset, -5);
+                ctx.stroke();
+                
+                ctx.restore();
+            }
+            
+            drawDeadBody() {
+                ctx.save();
+                ctx.translate(this.x, this.y);
+                ctx.strokeStyle = this.color;
+                ctx.lineWidth = 5;
+                ctx.beginPath();
+                ctx.moveTo(0, -5); ctx.lineTo(0, -35);
+                ctx.stroke();
+                ctx.strokeStyle = '#8B0000';
+                ctx.lineWidth = 8;
+                ctx.beginPath();
+                ctx.moveTo(-5, -80); ctx.lineTo(5, -80);
+                ctx.stroke();
+                ctx.restore();
+            }
+
+            drawSeveredHead() {
+                ctx.save();
+                ctx.translate(this.x + this.headX, this.y + this.headY);
+                ctx.rotate(this.headRotation);
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(0, 0, 16, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
+            
+            getHitbox() {
+                let range = 70;
+                return {
+                    x: this.x + (this.facing === 1 ? 0 : -range),
+                    y: this.y - 100,
+                    width: range,
+                    height: 90
+                };
+            }
+            
+            die() {
+                this.isDead = true;
+                this.headVelX = this.facing * -8;
+                this.headVelY = -12;
+                this.headRotationSpeed = 0.4;
+                for (let i = 0; i < 40; i++) {
+                    bloodParticles.push(new BloodParticle(this.x, this.y - 80, (Math.random()-0.5)*15, (Math.random()-0.5)*15));
+                }
+            }
+        }
+        
+        let player1 = new Fighter(250, '#ff3333', {left:'a', right:'d', up:' ', light:'j', heavy:'k', special:'l'}, 'Red');
+        let player2 = new Fighter(950, '#3333ff', {left:'ArrowLeft', right:'ArrowRight', up:'ArrowUp', light:'1', heavy:'2', special:'3'}, 'Blue');
+        
+        function showDamage(x, y, damage) {
+            const indicator = document.createElement('div');
+            indicator.className = 'damageIndicator';
+            indicator.textContent = `-${damage}`;
+            indicator.style.left = x + 'px';
+            indicator.style.top = y + 'px';
+            document.getElementById('gameContainer').appendChild(indicator);
+            setTimeout(() => indicator.remove(), 1200);
+        }
+        
+        function checkCollision(attacker, defender) {
+            if (!attacker.isAttacking || defender.isDead || isFinishing) return;
+            if (attacker.attackFrame < 8 || attacker.attackFrame > 12) return;
+            
+            const hitbox = attacker.getHitbox();
+            if (hitbox.x < defender.x + 30 && hitbox.x + hitbox.width > defender.x - 30 &&
+                hitbox.y < defender.y && hitbox.y + hitbox.height > defender.y - 100) {
+                
+                const damage = DAMAGE[attacker.attackType];
+                defender.health -= damage;
+                defender.hitStun = 20;
+                defender.velocityX = attacker.facing * 10;
+                showDamage(defender.x, defender.y - 120, damage);
+                
+                if (defender.health <= 0) {
+                    defender.health = 0;
+                    startFinisher(attacker, defender);
+                }
+            }
+        }
+        
+        function startFinisher(w, l) {
+            winner = w; loser = l;
+            isFinishing = true; finishingPhase = 'qte';
+            qteActive = true; qteProgress = 0; qteTimeLeft = 3;
+            qteSequence = ['W', 'A', 'S', 'D'].sort(() => Math.random() - 0.5);
+            showQTE();
+        }
+
+        function showQTE() {
+            const prompt = document.getElementById('qtePrompt');
+            const keysContainer = document.getElementById('qteKeys');
+            keysContainer.innerHTML = '';
+            qteSequence.forEach((key, i) => {
+                const div = document.createElement('div');
+                div.className = 'qteKey';
+                div.id = `qte-${i}`;
+                div.textContent = key;
+                keysContainer.appendChild(div);
+            });
+            prompt.style.display = 'block';
+        }
+
+        function checkQTEKey(key) {
+            if (!qteActive) return;
+            if (key.toUpperCase() === qteSequence[qteProgress]) {
+                document.getElementById(`qte-${qteProgress}`).classList.add('pressed');
+                qteProgress++;
+                if (qteProgress >= qteSequence.length) {
+                    qteActive = false;
+                    document.getElementById('qtePrompt').style.display = 'none';
+                    finishingPhase = 'push';
+                }
+            }
+        }
+
+        function executeFinisher() {
+            finishingTimer++;
+            if (finishingPhase === 'push') {
+                loser.x += winner.facing * 5;
+                winner.finishingPose = true;
+                if (finishingTimer > 40) { finishingPhase = 'decap'; finishingTimer = 0; }
+            } else if (finishingPhase === 'decap') {
+                if (finishingTimer === 1) loser.die();
+                if (finishingTimer > 60) gameOver();
+            }
+        }
+
+        window.addEventListener('keydown', (e) => {
+            keys[e.key.toLowerCase()] = true;
+            keys[e.key] = true;
+            if (qteActive) checkQTEKey(e.key);
+        });
+        window.addEventListener('keyup', (e) => {
+            keys[e.key.toLowerCase()] = false;
+            keys[e.key] = false;
+        });
+
+        function updateHealthBars() {
+            document.getElementById('health1').style.width = player1.health + '%';
+            document.getElementById('health2').style.width = player2.health + '%';
+            document.getElementById('special1').style.width = player1.specialCharge + '%';
+            document.getElementById('special2').style.width = player2.specialCharge + '%';
+        }
+
+        function resetGame() { location.reload(); }
+
+        function gameOver() {
+            document.getElementById('winner').textContent = player1.health > 0 ? "RED WINS" : "BLUE WINS";
+            document.getElementById('gameOver').style.display = 'block';
+        }
+
+        function gameLoop() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            if (!isFinishing) {
+                player1.update(); player2.update();
+                checkCollision(player1, player2); checkCollision(player2, player1);
+            } else {
+                if (qteActive) {
+                    qteTimeLeft -= 1/60;
+                    document.getElementById('qteTimer').textContent = qteTimeLeft.toFixed(1) + 's';
+                    if (qteTimeLeft <= 0) { qteActive = false; gameOver(); }
+                } else { executeFinisher(); }
+            }
+            bloodParticles = bloodParticles.filter(p => p.life > 0);
+            bloodParticles.forEach(p => { p.update(); p.draw(); });
+            player1.draw(); player2.draw();
+            updateHealthBars();
+            requestAnimationFrame(gameLoop);
+        }
+        gameLoop();
+    </script>
+</body>
+</html>
